@@ -6,14 +6,18 @@ import sqlite3
 def main():
     db = open_db("im.db")
 
-    with open('secret.txt', 'r') as s:
-        key = s.readline()
+    key = get_key()
 
     data = fetch_top250(key)
     output_ratings(key, data)
     output_data(data)
     create_show_records(db[1], data)
     close_db(db[0])
+
+
+def get_key() -> str:
+    with open('secret.txt', 'r') as s:
+        return s.readline()
 
 
 def fetch_series(key: str, title: str) -> dict:
