@@ -6,23 +6,25 @@ import sqlite3
 def main():
     db = open_db("im.db")
 
-    key = get_key()
+    key = get_key("")
 
     data = fetch_top250(key)
     output_ratings(key, data)
     output_data(data)
     create_show_records(db[1], data)
+    create_rating_records(db[1], data)
     close_db(db[0])
 
 
-def get_key() -> str:
-    with open('secret.txt', 'r') as s:
+def get_key(prefix: str) -> str:
+    with open(f'{prefix}secret.txt', 'r') as s:
         return s.readline()
 
 
 def fetch_series(key: str, title: str) -> dict:
-    series = requests.get(f"https://imdb-api.com/en/API/SearchTitle/{key}/{title}")
-    return dict(series.json())
+    search = requests.get(f"https://imdb-api.com/en/API/SearchTitle/{key}/{title}")
+    series = requests.get(f"https://imdb-api.com/en/API/Title/{key}/{search.json()['results'][0]['id']}/FullCast")
+    return series.json()
 
 
 # I included a print statement here to illustrate an issue with the API.
@@ -80,8 +82,12 @@ def open_db(name: str) -> (sqlite3.Connection, sqlite3.Cursor):
     return conn, curs
 
 
-def close_db(conn: sqlite3.Connection):
+def save_db(conn: sqlite3.Connection):
     conn.commit()
+
+
+def close_db(conn: sqlite3.Connection):
+    save_db(conn)
     conn.close()
 
 
@@ -134,13 +140,14 @@ def create_show_records(curs: sqlite3.Cursor, data: dict):
 
 def create_show_record(curs: sqlite3.Cursor, row: dict):
     curs.execute("""INSERT INTO shows(imdbId, title, fullTitle, yr, crew, rating, ratingCount)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)""", (row["id"],
-                                                              row["title"],
-                                                              row["fullTitle"],
-                                                              row["year"],
-                                                              row["crew"],
-                                                              row["imDbRating"],
-                                                              row["imDbRatingCount"]))
+                            VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT UPDATE""",
+                 (row["id"],
+                  row["title"],
+                  row["fullTitle"],
+                  row["year"],
+                  row["crew"],
+                  row["imDbRating"],
+                  row["imDbRatingCount"]))
 
 
 def create_rating_records(curs: sqlite3.Cursor, data: dict):
@@ -160,15 +167,20 @@ def create_rating_record(curs: sqlite3.Cursor, row: dict):
                                          three_percent, three_votes,
                                          two_percent, two_votes,
                                          one_percent, one_votes)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                 (row["imDbId"], row["title"], row["fullTitle"], row["ratings"][0]["rating"],
-                  row["ratings"][0]["percent"], row["ratings"][1]["rating"], row["ratings"][1]["percent"],
-                  row["ratings"][2]["rating"], row["ratings"][2]["percent"], row["ratings"][3]["rating"],
-                  row["ratings"][3]["percent"], row["ratings"][4]["rating"], row["ratings"][4]["percent"],
-                  row["ratings"][5]["rating"], row["ratings"][5]["percent"], row["ratings"][6]["rating"],
-                  row["ratings"][6]["percent"], row["ratings"][7]["rating"], row["ratings"][7]["percent"],
-                  row["ratings"][8]["rating"], row["ratings"][8]["percent"], row["ratings"][9]["rating"],
-                  row["ratings"][9]["percent"]))
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT UPDATE""",
+                 (row["imDbId"], row["title"], row["fullTitle"], row["ratings"][0]["percent"],
+                  row["ratings"][0]["votes"], row["ratings"][1]["percent"], row["ratings"][1]["votes"],
+                  row["ratings"][2]["percent"], row["ratings"][2]["votes"], row["ratings"][3]["percent"],
+                  row["ratings"][3]["votes"], row["ratings"][4]["percent"], row["ratings"][4]["votes"],
+                  row["ratings"][5]["percent"], row["ratings"][5]["votes"], row["ratings"][6]["percent"],
+                  row["ratings"][6]["votes"], row["ratings"][7]["percent"], row["ratings"][7]["votes"],
+                  row["ratings"][8]["percent"], row["ratings"][8]["votes"], row["ratings"][9]["percent"],
+                  row["ratings"][9]["votes"]))
+
+
+def query_db(curs: sqlite3.Cursor, table: str, id: str):
+    return curs.execute("""SELECT * FROM (?) WHERE imdbId == (?)""", (table, id))
+
 
 
 if __name__ == '__main__':
