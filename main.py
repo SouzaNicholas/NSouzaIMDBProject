@@ -140,7 +140,7 @@ def create_show_records(curs: sqlite3.Cursor, data: dict):
 
 def create_show_record(curs: sqlite3.Cursor, row: dict):
     curs.execute("""INSERT INTO shows(imdbId, title, fullTitle, yr, crew, rating, ratingCount)
-                            VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT UPDATE""",
+                            VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
                  (row["id"],
                   row["title"],
                   row["fullTitle"],
@@ -156,7 +156,7 @@ def create_rating_records(curs: sqlite3.Cursor, data: dict):
 
 
 def create_rating_record(curs: sqlite3.Cursor, row: dict):
-    curs.execute("""INSERT INTO ratings(imdbId, totalRating, totalVotes, 
+    curs.execute("""INSERT INTO ratings(imdbId, totalRating, totalVotes,
                                         ten_percent, ten_votes,
                                         nine_percent, nine_votes,
                                         eight_percent, eight_votes,
@@ -167,7 +167,7 @@ def create_rating_record(curs: sqlite3.Cursor, row: dict):
                                          three_percent, three_votes,
                                          two_percent, two_votes,
                                          one_percent, one_votes)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT UPDATE""",
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
                  (row["imDbId"], row["title"], row["fullTitle"], row["ratings"][0]["percent"],
                   row["ratings"][0]["votes"], row["ratings"][1]["percent"], row["ratings"][1]["votes"],
                   row["ratings"][2]["percent"], row["ratings"][2]["votes"], row["ratings"][3]["percent"],
@@ -180,7 +180,6 @@ def create_rating_record(curs: sqlite3.Cursor, row: dict):
 
 def query_db(curs: sqlite3.Cursor, table: str, id: str):
     return curs.execute("""SELECT * FROM (?) WHERE imdbId == (?)""", (table, id))
-
 
 
 if __name__ == '__main__':
