@@ -1,4 +1,10 @@
 import main
+import pytest
+
+
+@pytest.fixture
+def test_fixture():
+    assert 0
 
 
 def test_top():
