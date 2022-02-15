@@ -95,11 +95,11 @@ def init_top_table(curs: sqlite3.Cursor):
     curs.execute("""CREATE TABLE IF NOT EXISTS shows
                     (imdbId TEXT PRIMARY KEY,
                      title TEXT NOT NULL,
-                     fullTitle TEXT NOT NULL,
+                     fullTitle TEXT,
                      yr TEXT NOT NULL,
-                     crew TEXT NOT NULL,
-                     rating INTEGER NOT NULL,
-                     ratingCount INTEGER NOT NULL);""")
+                     crew TEXT,
+                     rating TEXT NOT NULL,
+                     ratingCount TEXT NOT NULL);""")
 
 
 def init_ratings_table(curs: sqlite3.Cursor):
@@ -178,8 +178,9 @@ def create_rating_record(curs: sqlite3.Cursor, row: dict):
                   row["ratings"][9]["votes"]))
 
 
-def query_db(curs: sqlite3.Cursor, table: str, id: str):
-    return curs.execute("""SELECT * FROM (?) WHERE imdbId == (?)""", (table, id))
+# ID is passed as a list, otherwise str is interpreted as a collection of 9 inputs.
+def query_db(curs: sqlite3.Cursor, id: str):
+    return curs.execute("""SELECT * FROM shows WHERE imdbId == (?)""", [id]).fetchall()
 
 
 if __name__ == '__main__':

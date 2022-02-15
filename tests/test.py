@@ -1,8 +1,6 @@
 import main
-import pytest
 
 
-@pytest.fixture
 def test_top():
     top = main.fetch_top250(main.get_key("../"))
     assert len(top) == 250
@@ -24,3 +22,5 @@ def test_db():
     }
     main.create_show_records(db[1], sample_data)
     main.save_db(db[0])
+    record = list(main.query_db(db[1], sample_data["The Room"]["id"])[0])
+    assert list(sample_data["The Room"].values()) == record
