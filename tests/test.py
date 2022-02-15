@@ -9,7 +9,6 @@ def test_top():
 
 
 def test_db():
-    key = main.get_key("../")
     db = main.open_db("sample.db")
     db[1].execute("""DROP TABLE IF EXISTS shows""")
     db[1].execute("""DROP TABLE IF EXISTS ratings""")
