@@ -7,7 +7,4 @@ The project has two tests to run. The first will validate that I query top 250 d
 from the API properly. The second will create a dummy database and use my table
 creation and population functions to fill the database.
 
-My database test is currently failing, as I can't find a query that returns data in the
-same format as the top 250 query. Otherwise, everything ought to be working fine. Once I
-find an effective way to refactor my design, I'll be able to input shows from outside the
-top 250 appropriately.
+The project passes all tests, but Github still can't seem to find the tests
