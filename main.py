@@ -4,16 +4,10 @@ import sqlite3
 
 # API key stored in text file to keep it private from Github
 def main():
-    db = open_db("im.db")
-
     key = get_key("")
 
-    data = fetch_top250(key)
-    output_ratings(key, data)
+    data = fetch_many("https://imdb-api.com/en/API/MostPopularTVs", key)
     output_data(data)
-    create_show_records(db[1], data)
-    create_rating_records(db[1], data)
-    close_db(db[0])
 
 
 def get_key(prefix: str) -> str:
@@ -27,17 +21,13 @@ def fetch_series(key: str, title: str) -> dict:
     return series.json()
 
 
-# I included a print statement here to illustrate an issue with the API.
-# The total rating only appears as 0. The only useful information returned
-# from a user rating API call is the spread of user votes on a 10-point scale
 def fetch_user_rating(key: str, id: str) -> dict:
     rating = requests.get(f"https://imdb-api.com/en/API/UserRatings/{key}/{id}")
-    print(rating.json())
     return rating.json()
 
 
-def fetch_top250(key) -> dict:
-    top = requests.get(f"https://imdb-api.com/en/api/Top250TVs/{key}")
+def fetch_many(url, key) -> dict:
+    top = requests.get(f"{url}/{key}")
     json = parse_json(top.json())
     return json
 
@@ -77,7 +67,7 @@ def output_data(data_dict):
 def open_db(name: str) -> (sqlite3.Connection, sqlite3.Cursor):
     conn = sqlite3.connect(name)
     curs = conn.cursor()
-    init_top_table(curs)
+    init_shows_table(curs)
     init_ratings_table(curs)
     return conn, curs
 
@@ -91,9 +81,46 @@ def close_db(conn: sqlite3.Connection):
     conn.close()
 
 
-def init_top_table(curs: sqlite3.Cursor):
+def init_shows_table(curs: sqlite3.Cursor):
     curs.execute("""CREATE TABLE IF NOT EXISTS shows
                     (imdbId TEXT PRIMARY KEY,
+                     title TEXT NOT NULL,
+                     fullTitle TEXT,
+                     yr TEXT NOT NULL,
+                     crew TEXT,
+                     rating TEXT NOT NULL,
+                     ratingCount TEXT NOT NULL);""")
+
+
+def init_movies_table(curs: sqlite3.Cursor):
+    curs.execute("""CREATE TABLE IF NOT EXISTS movies
+                    (imdbId TEXT PRIMARY KEY,
+                     title TEXT NOT NULL,
+                     fullTitle TEXT,
+                     yr TEXT NOT NULL,
+                     crew TEXT,
+                     rating TEXT NOT NULL,
+                     ratingCount TEXT NOT NULL);""")
+
+
+def init_popular_shows(curs: sqlite3.Cursor):
+    curs.execute("""CREATE TABLE IF NOT EXISTS popularShows
+                    (imdbId TEXT PRIMARY KEY,
+                     rank TEXT,
+                     rankUpDown TEXT DEFAULT 0,
+                     title TEXT NOT NULL,
+                     fullTitle TEXT,
+                     yr TEXT NOT NULL,
+                     crew TEXT,
+                     rating TEXT NOT NULL,
+                     ratingCount TEXT NOT NULL);""")
+
+
+def init_popular_movies(curs: sqlite3.Cursor):
+    curs.execute("""CREATE TABLE IF NOT EXISTS popularMovies
+                    (imdbId TEXT PRIMARY KEY,
+                     rank TEXT,
+                     rankUpDown TEXT DEFAULT 0,
                      title TEXT NOT NULL,
                      fullTitle TEXT,
                      yr TEXT NOT NULL,

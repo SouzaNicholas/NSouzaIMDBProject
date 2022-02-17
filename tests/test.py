@@ -8,7 +8,7 @@ def test_fixture():
 
 
 def test_top():
-    top = main.fetch_top250(main.get_key("../"))
+    top = main.fetch_many("https://imdb-api.com/en/API/Top250TVs", main.get_key("../"))
     assert len(top) == 250
 
 
