@@ -5,9 +5,11 @@ import sqlite3
 # API key stored in text file to keep it private from Github
 def main():
     key = get_key("")
-
     data = fetch_many("https://imdb-api.com/en/API/MostPopularTVs", key)
-    output_data(data)
+
+    db = open_db("im.db")
+    create_popular_show_records(db[1], data)
+    query_show_delta(db[1])
 
 
 def get_key(prefix: str) -> str:
@@ -67,8 +69,7 @@ def output_data(data_dict):
 def open_db(name: str) -> (sqlite3.Connection, sqlite3.Cursor):
     conn = sqlite3.connect(name)
     curs = conn.cursor()
-    init_shows_table(curs)
-    init_ratings_table(curs)
+    init_tables(curs)
     return conn, curs
 
 
@@ -79,6 +80,14 @@ def save_db(conn: sqlite3.Connection):
 def close_db(conn: sqlite3.Connection):
     save_db(conn)
     conn.close()
+
+
+def init_tables(curs: sqlite3.Cursor):
+    init_shows_table(curs)
+    init_ratings_table(curs)
+    init_movies_table(curs)
+    init_popular_movies(curs)
+    init_popular_shows(curs)
 
 
 def init_shows_table(curs: sqlite3.Cursor):
@@ -177,6 +186,25 @@ def create_show_record(curs: sqlite3.Cursor, row: dict):
                   row["imDbRatingCount"]))
 
 
+def create_popular_show_records(curs: sqlite3.Cursor, data: dict):
+    for row in data.values():
+        create_popular_show_record(curs, row)
+
+
+def create_popular_show_record(curs: sqlite3.Cursor, row: dict):
+    curs.execute("""INSERT INTO popularShows(imdbId, rank, rankUpDown, title, fullTitle, yr, crew, rating, ratingCount)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
+                 (row["id"],
+                  row["rank"],
+                  row["rankUpDown"],
+                  row["title"],
+                  row["fullTitle"],
+                  row["year"],
+                  row["crew"],
+                  row["imDbRating"],
+                  row["imDbRatingCount"]))
+
+
 def create_rating_records(curs: sqlite3.Cursor, data: dict):
     for row in data.values():
         create_rating_record(curs, row)
@@ -208,6 +236,10 @@ def create_rating_record(curs: sqlite3.Cursor, row: dict):
 # ID is passed as a list, otherwise str is interpreted as a collection of 9 inputs.
 def query_db(curs: sqlite3.Cursor, id: str):
     return curs.execute("""SELECT * FROM shows WHERE imdbId == (?)""", [id]).fetchall()
+
+
+def query_show_delta(curs: sqlite3.Cursor):
+    return curs.execute("""SELECT * FROM popularShows ORDER BY RankUpDown DESC LIMIT 3""").fetchall()
 
 
 if __name__ == '__main__':
