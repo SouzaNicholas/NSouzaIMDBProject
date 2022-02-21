@@ -5,11 +5,12 @@ import sqlite3
 # API key stored in text file to keep it private from Github
 def main():
     key = get_key("")
-    data = fetch_many("https://imdb-api.com/en/API/MostPopularTVs", key)
+    data = fetch_many("https://imdb-api.com/en/API/MostPopularMovies", key)
 
     db = open_db("im.db")
-    create_popular_show_records(db[1], data)
-    query_show_delta(db[1])
+    create_popular_movie_records(db[1], data)
+    print(query_movie_delta(db[1]))
+    close_db(db[0])
 
 
 def get_key(prefix: str) -> str:
@@ -129,7 +130,7 @@ def init_popular_movies(curs: sqlite3.Cursor):
     curs.execute("""CREATE TABLE IF NOT EXISTS popularMovies
                     (imdbId TEXT PRIMARY KEY,
                      rank TEXT,
-                     rankUpDown TEXT DEFAULT 0,
+                     rankUpDown INTEGER DEFAULT 0,
                      title TEXT NOT NULL,
                      fullTitle TEXT,
                      yr TEXT NOT NULL,
@@ -205,13 +206,60 @@ def create_popular_show_record(curs: sqlite3.Cursor, row: dict):
                   row["imDbRatingCount"]))
 
 
-def create_rating_records(curs: sqlite3.Cursor, data: dict):
+def create_popular_movie_records(curs: sqlite3.Cursor, data: dict):
     for row in data.values():
-        create_rating_record(curs, row)
+        create_popular_movie_record(curs, row)
 
 
-def create_rating_record(curs: sqlite3.Cursor, row: dict):
-    curs.execute("""INSERT INTO ratings(imdbId, totalRating, totalVotes,
+def create_popular_movie_record(curs: sqlite3.Cursor, row: dict):
+    curs.execute("""INSERT INTO popularMovies(imdbId, rank, rankUpDown, title, fullTitle, yr, crew, rating, ratingCount)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
+                 (row["id"],
+                  row["rank"],
+                  int(row["rankUpDown"].replace(",", "")),
+                  row["title"],
+                  row["fullTitle"],
+                  row["year"],
+                  row["crew"],
+                  row["imDbRating"],
+                  row["imDbRatingCount"]))
+
+
+def create_show_rating_records(curs: sqlite3.Cursor, data: dict):
+    for row in data.values():
+        create_show_rating_record(curs, row)
+
+
+def create_show_rating_record(curs: sqlite3.Cursor, row: dict):
+    curs.execute("""INSERT INTO showRatings(imdbId, totalRating, totalVotes,
+                                        ten_percent, ten_votes,
+                                        nine_percent, nine_votes,
+                                        eight_percent, eight_votes,
+                                        seven_percent, seven_votes,
+                                        six_percent, six_votes,
+                                        five_percent, five_votes,
+                                        four_percent, four_votes,
+                                         three_percent, three_votes,
+                                         two_percent, two_votes,
+                                         one_percent, one_votes)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
+                 (row["imDbId"], row["title"], row["fullTitle"], row["ratings"][0]["percent"],
+                  row["ratings"][0]["votes"], row["ratings"][1]["percent"], row["ratings"][1]["votes"],
+                  row["ratings"][2]["percent"], row["ratings"][2]["votes"], row["ratings"][3]["percent"],
+                  row["ratings"][3]["votes"], row["ratings"][4]["percent"], row["ratings"][4]["votes"],
+                  row["ratings"][5]["percent"], row["ratings"][5]["votes"], row["ratings"][6]["percent"],
+                  row["ratings"][6]["votes"], row["ratings"][7]["percent"], row["ratings"][7]["votes"],
+                  row["ratings"][8]["percent"], row["ratings"][8]["votes"], row["ratings"][9]["percent"],
+                  row["ratings"][9]["votes"]))
+
+
+def create_movie_rating_records(curs: sqlite3.Cursor, data: dict):
+    for row in data.values():
+        create_movie_rating_record(curs, row)
+
+
+def create_movie_rating_record(curs: sqlite3.Cursor, row: dict):
+    curs.execute("""INSERT INTO movieRatings(imdbId, totalRating, totalVotes,
                                         ten_percent, ten_votes,
                                         nine_percent, nine_votes,
                                         eight_percent, eight_votes,
@@ -239,7 +287,15 @@ def query_db(curs: sqlite3.Cursor, id: str):
 
 
 def query_show_delta(curs: sqlite3.Cursor):
-    return curs.execute("""SELECT * FROM popularShows ORDER BY RankUpDown DESC LIMIT 3""").fetchall()
+    result = curs.execute("""SELECT * FROM popularShows ORDER BY RankUpDown DESC LIMIT 3""").fetchall()
+    result.append(curs.execute("""SELECT * FROM popularShows ORDER BY RankUpDown ASC""").fetchone())
+    return result
+
+
+def query_movie_delta(curs: sqlite3.Cursor):
+    result = curs.execute("""SELECT * FROM popularMovies ORDER BY RankUpDown DESC LIMIT 3""").fetchall()
+    result.append(curs.execute("""SELECT * FROM popularMovies ORDER BY RankUpDown ASC""").fetchone())
+    return result
 
 
 if __name__ == '__main__':
