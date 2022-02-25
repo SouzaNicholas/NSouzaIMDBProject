@@ -28,7 +28,7 @@ def test_db():
     }
     main.create_show_records(db[1], sample_data)
     main.save_db(db[0])
-    record = list(main.query_db(db[1], sample_data["The Room"]["id"])[0])
+    record = list(main.query_show(db[1], sample_data["The Room"]["id"])[0])
     assert list(sample_data["The Room"].values()) == record
     main.close_db(db[0])
 

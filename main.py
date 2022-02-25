@@ -9,7 +9,7 @@ def main():
 
     db = open_db("im.db")
     create_popular_movie_records(db[1], data)
-    print(query_movie_delta(db[1]))
+    print(query_popularity_changes(db[1], "popularMovies", 3, 1))
     close_db(db[0])
 
 
@@ -18,20 +18,28 @@ def get_key(prefix: str) -> str:
         return s.readline()
 
 
+def fetch_id(key: str, title: str):
+    return requests.get(f"https://imdb-api.com/en/API/SearchTitle/{key}/{title}")
+
+
+# There's a complicated compound statement here.
+# It's basically unpacking json on the spot to find the ID of a series required to find it in the API
 def fetch_series(key: str, title: str) -> dict:
-    search = requests.get(f"https://imdb-api.com/en/API/SearchTitle/{key}/{title}")
+    search = fetch_id(key, title)
     series = requests.get(f"https://imdb-api.com/en/API/Title/{key}/{search.json()['results'][0]['id']}/FullCast")
     return series.json()
 
 
-def fetch_user_rating(key: str, id: str) -> dict:
-    rating = requests.get(f"https://imdb-api.com/en/API/UserRatings/{key}/{id}")
-    return rating.json()
+# Use when the request will return a single record
+def fetch_one(url: str, key: str, id: str) -> dict:
+    search = requests.get(f"{url}/{key}/{id}")
+    return search.json()
 
 
-def fetch_many(url, key) -> dict:
-    top = requests.get(f"{url}/{key}")
-    json = parse_json(top.json())
+# Unpacks requests that may have multiple results
+def fetch_many(url: str, key: str) -> dict:
+    search = requests.get(f"{url}/{key}")
+    json = parse_json(search.json())
     return json
 
 
@@ -42,21 +50,21 @@ def parse_json(data_dict: dict) -> dict:
         clean[i] = data_dict['items'][i - 1]
     return clean
 
-
-# Was going to use f strings for file writing, but it caused issues with the dict keys
-# being in quotation marks
-def output_ratings(key, data_dict):
-    with open("titles.txt", 'w') as f:
-        WoT = fetch_series(key, "The Wheel of Time")['results'][0]
-        f.write(WoT["title"] + " - Rating: " + fetch_user_rating(key, WoT["id"])["totalRating"] + '\n')
-        f.write(data_dict[1]["title"] + " - Rating: " +
-                fetch_user_rating(key, data_dict[1]["id"])["totalRating"] + '\n')
-        f.write(data_dict[50]["title"] + " - Rating: " +
-                fetch_user_rating(key, data_dict[50]["id"])["totalRating"] + '\n')
-        f.write(data_dict[100]["title"] + " - Rating: " +
-                fetch_user_rating(key, data_dict[100]["id"])["totalRating"] + '\n')
-        f.write(data_dict[200]["title"] + " - Rating: " +
-                fetch_user_rating(key, data_dict[200]["id"])["totalRating"] + '\n')
+# START RELIC ######
+# Below is a relic from Sprint 1. I'm keeping it around just in case. It will be deleted soon
+# def output_ratings(key, data_dict):
+#     with open("titles.txt", 'w') as f:
+#         WoT = fetch_series(key, "The Wheel of Time")['results'][0]
+#         f.write(WoT["title"] + " - Rating: " + fetch_user_rating(key, WoT["id"])["totalRating"] + '\n')
+#         f.write(data_dict[1]["title"] + " - Rating: " +
+#                 fetch_user_rating(key, data_dict[1]["id"])["totalRating"] + '\n')
+#         f.write(data_dict[50]["title"] + " - Rating: " +
+#                 fetch_user_rating(key, data_dict[50]["id"])["totalRating"] + '\n')
+#         f.write(data_dict[100]["title"] + " - Rating: " +
+#                 fetch_user_rating(key, data_dict[100]["id"])["totalRating"] + '\n')
+#         f.write(data_dict[200]["title"] + " - Rating: " +
+#                 fetch_user_rating(key, data_dict[200]["id"])["totalRating"] + '\n')
+# END RELIC ######
 
 
 def output_data(data_dict):
@@ -225,41 +233,13 @@ def create_popular_movie_record(curs: sqlite3.Cursor, row: dict):
                   row["imDbRatingCount"]))
 
 
-def create_show_rating_records(curs: sqlite3.Cursor, data: dict):
+def create_rating_records(curs: sqlite3.Cursor, table_name: str, data: dict):
     for row in data.values():
-        create_show_rating_record(curs, row)
+        create_rating_record(curs, table_name, row)
 
 
-def create_show_rating_record(curs: sqlite3.Cursor, row: dict):
-    curs.execute("""INSERT INTO showRatings(imdbId, totalRating, totalVotes,
-                                        ten_percent, ten_votes,
-                                        nine_percent, nine_votes,
-                                        eight_percent, eight_votes,
-                                        seven_percent, seven_votes,
-                                        six_percent, six_votes,
-                                        five_percent, five_votes,
-                                        four_percent, four_votes,
-                                         three_percent, three_votes,
-                                         two_percent, two_votes,
-                                         one_percent, one_votes)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
-                 (row["imDbId"], row["title"], row["fullTitle"], row["ratings"][0]["percent"],
-                  row["ratings"][0]["votes"], row["ratings"][1]["percent"], row["ratings"][1]["votes"],
-                  row["ratings"][2]["percent"], row["ratings"][2]["votes"], row["ratings"][3]["percent"],
-                  row["ratings"][3]["votes"], row["ratings"][4]["percent"], row["ratings"][4]["votes"],
-                  row["ratings"][5]["percent"], row["ratings"][5]["votes"], row["ratings"][6]["percent"],
-                  row["ratings"][6]["votes"], row["ratings"][7]["percent"], row["ratings"][7]["votes"],
-                  row["ratings"][8]["percent"], row["ratings"][8]["votes"], row["ratings"][9]["percent"],
-                  row["ratings"][9]["votes"]))
-
-
-def create_movie_rating_records(curs: sqlite3.Cursor, data: dict):
-    for row in data.values():
-        create_movie_rating_record(curs, row)
-
-
-def create_movie_rating_record(curs: sqlite3.Cursor, row: dict):
-    curs.execute("""INSERT INTO movieRatings(imdbId, totalRating, totalVotes,
+def create_rating_record(curs: sqlite3.Cursor, table_name: str, row: dict):
+    curs.execute(f"""INSERT INTO {table_name}(imdbId, totalRating, totalVotes,
                                         ten_percent, ten_votes,
                                         nine_percent, nine_votes,
                                         eight_percent, eight_votes,
@@ -282,19 +262,13 @@ def create_movie_rating_record(curs: sqlite3.Cursor, row: dict):
 
 
 # ID is passed as a list, otherwise str is interpreted as a collection of 9 inputs.
-def query_db(curs: sqlite3.Cursor, id: str):
+def query_show(curs: sqlite3.Cursor, id: str):
     return curs.execute("""SELECT * FROM shows WHERE imdbId == (?)""", [id]).fetchall()
 
 
-def query_show_delta(curs: sqlite3.Cursor):
-    result = curs.execute("""SELECT * FROM popularShows ORDER BY RankUpDown DESC LIMIT 3""").fetchall()
-    result.append(curs.execute("""SELECT * FROM popularShows ORDER BY RankUpDown ASC""").fetchone())
-    return result
-
-
-def query_movie_delta(curs: sqlite3.Cursor):
-    result = curs.execute("""SELECT * FROM popularMovies ORDER BY RankUpDown DESC LIMIT 3""").fetchall()
-    result.append(curs.execute("""SELECT * FROM popularMovies ORDER BY RankUpDown ASC""").fetchone())
+def query_popularity_changes(curs: sqlite3.Cursor, table_name: str, top: int, bottom: int):
+    result = curs.execute(f"""SELECT * FROM {table_name} ORDER BY RankUpDown DESC LIMIT {top}""").fetchall()
+    result.append(curs.execute(f"""SELECT * FROM {table_name} ORDER BY RankUpDown ASC LIMIT {bottom}""").fetchone())
     return result
 
 
