@@ -1,15 +1,15 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton
 
-import UpdateWindow as uw
-import VisualizationWindow as vw
+import UpdateWindow as UW
+import VisualizationWindow as VW
 
 
 class LaunchWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setup()
+        self.setup_window()
 
-    def setup(self):
+    def setup_window(self):
         self.setWindowTitle("ImDb API Query System")
         self.setGeometry(100, 100, 350, 200)
         prompt = QLabel(self)
@@ -27,9 +27,9 @@ class LaunchWindow(QWidget):
         self.show()
 
     def open_update_window(self):
-        update_window = uw.UpdateWindow()
+        update_window = UW.UpdateWindow()
         print(self)  # Here to remove "could be static" style warning, not permanent
 
     def open_visualization_window(self):
-        data_window = vw.VisualizationWindow()
+        data_window = VW.VisualizationWindow()
         print(self)  # Here to remove "could be static" style warning, not permanent
