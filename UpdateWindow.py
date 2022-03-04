@@ -27,6 +27,7 @@ class UpdateWindow(QWidget):
         # delete_button.resize(delete_button.sizeHint())
         # delete_button.move(450, 780)
         self.addrow(update_button, delete_button)
+        self.show()
 
     def update_record(self):
         print("placeholder")

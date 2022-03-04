@@ -44,32 +44,16 @@ def fetch_many(url: str, key: str) -> dict:
 
 
 # Deciphers JSON to return a 'cleaned' version for Python
-def parse_json(data_dict: dict) -> dict:
+def parse_json(data: dict) -> dict:
     clean = {}
-    for i in range(1, len(data_dict['items']) + 1):
-        clean[i] = data_dict['items'][i - 1]
+    for i in range(1, len(data['items']) + 1):
+        clean[i] = data['items'][i - 1]
     return clean
 
-# START RELIC ######
-# Below is a relic from Sprint 1. I'm keeping it around just in case. It will be deleted soon
-# def output_ratings(key, data_dict):
-#     with open("titles.txt", 'w') as f:
-#         WoT = fetch_series(key, "The Wheel of Time")['results'][0]
-#         f.write(WoT["title"] + " - Rating: " + fetch_user_rating(key, WoT["id"])["totalRating"] + '\n')
-#         f.write(data_dict[1]["title"] + " - Rating: " +
-#                 fetch_user_rating(key, data_dict[1]["id"])["totalRating"] + '\n')
-#         f.write(data_dict[50]["title"] + " - Rating: " +
-#                 fetch_user_rating(key, data_dict[50]["id"])["totalRating"] + '\n')
-#         f.write(data_dict[100]["title"] + " - Rating: " +
-#                 fetch_user_rating(key, data_dict[100]["id"])["totalRating"] + '\n')
-#         f.write(data_dict[200]["title"] + " - Rating: " +
-#                 fetch_user_rating(key, data_dict[200]["id"])["totalRating"] + '\n')
-# END RELIC ######
 
-
-def output_data(data_dict):
+def output_to_file(data: dict):
     with open("titles.txt", 'a') as f:
-        for v in data_dict.values():
+        for v in data.values():
             f.write(str(v))
             f.write('\n')
             print(v)
@@ -91,6 +75,7 @@ def close_db(conn: sqlite3.Connection):
     conn.close()
 
 
+# -----   TABLE CREATION METHODS ----- #
 def init_tables(curs: sqlite3.Cursor):
     init_shows_table(curs)
     init_ratings_table(curs)
@@ -176,6 +161,7 @@ def init_ratings_table(curs: sqlite3.Cursor):
                      FOREIGN KEY(imdbId) REFERENCES shows(imdbId));""")
 
 
+# -----   RECORD CREATION METHODS ----- #
 # Function expects a dict with dict objects as values.
 # This is how the JSON is parsed, so it's easiest to work with like this.
 def create_show_records(curs: sqlite3.Cursor, data: dict):
@@ -186,7 +172,7 @@ def create_show_records(curs: sqlite3.Cursor, data: dict):
 def create_show_record(curs: sqlite3.Cursor, row: dict):
     curs.execute("""INSERT INTO shows(imdbId, title, fullTitle, yr, crew, rating, ratingCount)
                             VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
-                 (row["id"],
+                 (row["imDbId"],
                   row["title"],
                   row["fullTitle"],
                   row["year"],
@@ -203,7 +189,7 @@ def create_popular_show_records(curs: sqlite3.Cursor, data: dict):
 def create_popular_show_record(curs: sqlite3.Cursor, row: dict):
     curs.execute("""INSERT INTO popularShows(imdbId, rank, rankUpDown, title, fullTitle, yr, crew, rating, ratingCount)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
-                 (row["id"],
+                 (row["imDbId"],
                   row["rank"],
                   row["rankUpDown"],
                   row["title"],
@@ -222,7 +208,7 @@ def create_popular_movie_records(curs: sqlite3.Cursor, data: dict):
 def create_popular_movie_record(curs: sqlite3.Cursor, row: dict):
     curs.execute("""INSERT INTO popularMovies(imdbId, rank, rankUpDown, title, fullTitle, yr, crew, rating, ratingCount)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
-                 (row["id"],
+                 (row["imDbId"],
                   row["rank"],
                   int(row["rankUpDown"].replace(",", "")),
                   row["title"],
@@ -261,7 +247,27 @@ def create_rating_record(curs: sqlite3.Cursor, table_name: str, row: dict):
                   row["ratings"][9]["votes"]))
 
 
+# -----   DATABASE MODIFICATION METHODS ----- #
+# This function's SQL command doesn't properly sanitize inputs.
+# I'm not sure how to allow input that works for different tables
+# While also preventing SQL injection issues.
+def update_record(curs: sqlite3.Cursor, table: str, data: dict):
+    fields = package_fields(data)
+    curs.execute(f"""UPDATE {table} SET {fields} WHERE imDbId = (?)""", [data["imDbId"]])
+
+
+# Formats data to a SQL readable format. This would be done by hand, but the number and name of the
+# fields varies by table. It also strips a trailing comma by slicing.
+def package_fields(data: dict) -> str:
+    request = ""
+    for key in data.keys():
+        request += key + " = " + data[key] + ","
+    return request[:-1]
+
+
+# -----   DATABASE SEARCH METHODS ----- #
 # ID is passed as a list, otherwise str is interpreted as a collection of 9 inputs.
+# For clarity, that occurs because a string is also a collection, so the 9 inputs are characters.
 def query_show(curs: sqlite3.Cursor, id: str):
     return curs.execute("""SELECT * FROM shows WHERE imdbId == (?)""", [id]).fetchall()
 
