@@ -7,6 +7,6 @@ class VisualizationWindow(QWidget):
         self.setup_window()
 
     def setup_window(self):
-        self.setGeometry(100, 100, 900, 900)
+        self.setGeometry(100, 300, 800, 800)
         self.setWindowTitle("Visualize Data")
         self.show()

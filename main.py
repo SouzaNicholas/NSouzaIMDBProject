@@ -1,16 +1,15 @@
 import requests
 import sqlite3
+from PyQt5 import QtWidgets
+import sys
+import LaunchWindow
 
 
 # API key stored in text file to keep it private from Github
 def main():
-    key = get_key("")
-    data = fetch_many("https://imdb-api.com/en/API/MostPopularMovies", key)
-
-    db = open_db("im.db")
-    create_popular_movie_records(db[1], data)
-    print(query_popularity_changes(db[1], "popularMovies", 3, 1))
-    close_db(db[0])
+    app = QtWidgets.QApplication(sys.argv)
+    win = LaunchWindow.LaunchWindow()
+    sys.exit(app.exec())
 
 
 def get_key(prefix: str) -> str:
@@ -276,7 +275,3 @@ def query_popularity_changes(curs: sqlite3.Cursor, table_name: str, top: int, bo
     result = curs.execute(f"""SELECT * FROM {table_name} ORDER BY RankUpDown DESC LIMIT {top}""").fetchall()
     result.append(curs.execute(f"""SELECT * FROM {table_name} ORDER BY RankUpDown ASC LIMIT {bottom}""").fetchone())
     return result
-
-
-if __name__ == '__main__':
-    main()

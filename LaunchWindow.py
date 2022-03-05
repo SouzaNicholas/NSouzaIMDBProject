@@ -8,10 +8,11 @@ class LaunchWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setup_window()
+        self.popup = None
 
     def setup_window(self):
         self.setWindowTitle("ImDb API Query System")
-        self.setGeometry(100, 100, 350, 200)
+        self.setGeometry(100, 100, 350, 150)
         prompt = QLabel(self)
         prompt.setText("Would you like to update records or visualize data?")
         prompt.move(20, 20)
@@ -27,9 +28,7 @@ class LaunchWindow(QWidget):
         self.show()
 
     def open_update_window(self):
-        update_window = UW.UpdateWindow()
-        print(self)  # Here to remove "could be static" style warning, not permanent
+        self.popup = UW.UpdateWindow()
 
     def open_visualization_window(self):
-        data_window = VW.VisualizationWindow()
-        print(self)  # Here to remove "could be static" style warning, not permanent
+        self.popup = VW.VisualizationWindow()
