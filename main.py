@@ -252,7 +252,7 @@ def create_rating_record(curs: sqlite3.Cursor, table_name: str, row: dict):
 # While also preventing SQL injection issues.
 def update_record(curs: sqlite3.Cursor, table: str, data: dict):
     fields = package_fields(data)
-    curs.execute(f"""UPDATE {table} SET {fields} WHERE imDbId = (?)""", [data["imDbId"]])
+    curs.execute(f"""UPDATE {table} SET {fields} WHERE imDbId = (?);""", [data["imDbId"]])
 
 
 # Formats data to a SQL readable format. This would be done by hand, but the number and name of the
@@ -264,7 +264,16 @@ def package_fields(data: dict) -> str:
     return request[:-1]
 
 
+# id is passed as a tuple so the letters aren't interpreted as separate inputs.
+def delete_record(curs: sqlite3.Cursor, table: str, id: str):
+    curs.execute(f"""DELETE * FROM {table} WHERE imdbId == (?);""", (id, ))
+
+
 # -----   DATABASE SEARCH METHODS ----- #
+def query_entire_table(curs: sqlite3.Cursor, table_name: str):
+    return curs.execute(f"""SELECT * FROM {table_name};""").fetchall()
+
+
 # ID is passed as a list, otherwise str is interpreted as a collection of 9 inputs.
 # For clarity, that occurs because a string is also a collection, so the 9 inputs are characters.
 def query_show(curs: sqlite3.Cursor, id: str):
