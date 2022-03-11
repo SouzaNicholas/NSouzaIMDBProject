@@ -25,6 +25,7 @@ class UpdateWindow(QWidget):
         self.table_list.move(50, 20)
         self.table_list.resize(200, 25)
         self.populate_table_list()
+        self.table_list.currentIndexChanged.connect(self.populate_record_list)
         self.record_list = QListWidget(self)
         self.record_list.move(50, 80)
         self.record_list.resize(1300, 520)
@@ -49,11 +50,13 @@ class UpdateWindow(QWidget):
     # I use string slicing to strip off excess formatting. It takes up less space than using
     # logic to prevent the extra " --- " from being put on in the first place.
     def populate_record_list(self):
+        self.record_list.clear()
         current_table = self.table_list.currentText()
         records = self.record_cache.get(current_table)
         if records is None:
             db = main.open_db("im.db")
             records = main.query_entire_table(db[1], current_table)
+            self.record_cache[current_table] = records
             main.close_db(db[0])
 
         for record in records:
@@ -66,6 +69,7 @@ class UpdateWindow(QWidget):
         if self.record_list.currentItem() is not None:
             update_form = UpdateDialog.UpdateDialog(self.convert_record_to_dict())
             updated_record = update_form.exec()
+            print(updated_record)
 
     def delete_record(self):
         db = main.open_db("im.db")
@@ -86,4 +90,3 @@ class UpdateWindow(QWidget):
             pair = field.split(": ")
             formatted_record[pair[0]] = pair[1]
         return formatted_record
-
