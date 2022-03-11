@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QFormLayout
+from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QFormLayout, QPushButton
+import main
 
 
 class UpdateDialog(QDialog):
@@ -20,4 +21,15 @@ class UpdateDialog(QDialog):
             self.field_labels.append(label)
             self.field_line_edits.append(line_edit)
             layout.addRow(label, line_edit)
+        accept_button = QPushButton("Accept", self)
+        accept_button.clicked.connect(self.accept)
+        cancel_button = QPushButton("Cancel", self)
+        cancel_button.clicked.connect(self.reject)
+        layout.addRow(accept_button, cancel_button)
 
+    def accept(self):
+        for index in range(len(self.field_labels)):
+            column = self.field_labels[index].text()
+            value = self.field_line_edits[index].text()
+            self.record_data[column] = value
+        self.done(1)

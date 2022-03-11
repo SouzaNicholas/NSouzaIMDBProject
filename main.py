@@ -171,7 +171,7 @@ def create_show_records(curs: sqlite3.Cursor, data: dict):
 def create_show_record(curs: sqlite3.Cursor, row: dict):
     curs.execute("""INSERT INTO shows(imdbId, title, fullTitle, yr, crew, rating, ratingCount)
                             VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
-                 (row["imDbId"],
+                 (row["imdbId"],
                   row["title"],
                   row["fullTitle"],
                   row["year"],
@@ -188,7 +188,7 @@ def create_popular_show_records(curs: sqlite3.Cursor, data: dict):
 def create_popular_show_record(curs: sqlite3.Cursor, row: dict):
     curs.execute("""INSERT INTO popularShows(imdbId, rank, rankUpDown, title, fullTitle, yr, crew, rating, ratingCount)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
-                 (row["imDbId"],
+                 (row["imdbId"],
                   row["rank"],
                   row["rankUpDown"],
                   row["title"],
@@ -207,7 +207,7 @@ def create_popular_movie_records(curs: sqlite3.Cursor, data: dict):
 def create_popular_movie_record(curs: sqlite3.Cursor, row: dict):
     curs.execute("""INSERT INTO popularMovies(imdbId, rank, rankUpDown, title, fullTitle, yr, crew, rating, ratingCount)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
-                 (row["imDbId"],
+                 (row["imdbId"],
                   row["rank"],
                   int(row["rankUpDown"].replace(",", "")),
                   row["title"],
@@ -236,7 +236,7 @@ def create_rating_record(curs: sqlite3.Cursor, table_name: str, row: dict):
                                          two_percent, two_votes,
                                          one_percent, one_votes)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""",
-                 (row["imDbId"], row["title"], row["fullTitle"], row["ratings"][0]["percent"],
+                 (row["imdbId"], row["title"], row["fullTitle"], row["ratings"][0]["percent"],
                   row["ratings"][0]["votes"], row["ratings"][1]["percent"], row["ratings"][1]["votes"],
                   row["ratings"][2]["percent"], row["ratings"][2]["votes"], row["ratings"][3]["percent"],
                   row["ratings"][3]["votes"], row["ratings"][4]["percent"], row["ratings"][4]["votes"],
@@ -252,7 +252,7 @@ def create_rating_record(curs: sqlite3.Cursor, table_name: str, row: dict):
 # While also preventing SQL injection issues.
 def update_record(curs: sqlite3.Cursor, table: str, data: dict):
     fields = package_fields_to_string(data)
-    curs.execute(f"""UPDATE {table} SET {fields} WHERE imDbId = (?);""", [data["imDbId"]])
+    curs.execute(f"""UPDATE {table} SET {fields} WHERE imdbId = (?);""", [data["imdbId"]])
 
 
 # Formats data to a SQL readable format. This would be done by hand, but the number and name of the
@@ -260,7 +260,7 @@ def update_record(curs: sqlite3.Cursor, table: str, data: dict):
 def package_fields_to_string(data: dict) -> str:
     request = ""
     for key in data.keys():
-        request += key + " = " + data[key] + ","
+        request += key + " = \'" + data[key] + "\',"
     return request[:-1]
 
 
@@ -280,8 +280,8 @@ def delete_record(curs: sqlite3.Cursor, table: str, id: str):
 
 
 # -----   DATABASE SEARCH METHODS ----- #
-# Gets all information from a table and merges each record with columns in to dicts for convenient use.
-def query_entire_table(curs: sqlite3.Cursor, table_name: str):
+# Gets all information from a table and merges each record with columns into dicts for convenient use.
+def query_entire_table(curs: sqlite3.Cursor, table_name: str) -> list[dict]:
     records = curs.execute(f"""SELECT * FROM {table_name};""").fetchall()
     keys = curs.execute(f"""PRAGMA table_info({table_name});""").fetchall()
     output = []

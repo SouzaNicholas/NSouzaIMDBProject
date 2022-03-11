@@ -68,8 +68,12 @@ class UpdateWindow(QWidget):
     def update_record(self):
         if self.record_list.currentItem() is not None:
             update_form = UpdateDialog.UpdateDialog(self.convert_record_to_dict())
-            updated_record = update_form.exec()
-            print(updated_record)
+            update_form.exec()
+            updated_record = update_form.record_data
+
+            db = main.open_db("im.db")
+            main.update_record(db[1], self.table_list.currentText(), updated_record)
+            main.close_db(db[0])
 
     def delete_record(self):
         db = main.open_db("im.db")
