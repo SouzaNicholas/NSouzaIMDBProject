@@ -1,4 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QPushButton, QComboBox, QListWidget, QListWidgetItem
+
+import UpdateDialog
 import main
 
 
@@ -17,7 +19,7 @@ class UpdateWindow(QWidget):
         self.setup_window()
 
     def setup_window(self):
-        self.setGeometry(100, 300, 600, 700)
+        self.setGeometry(100, 300, 1400, 700)
         self.setWindowTitle("Update Database Records")
         self.table_list = QComboBox(self)
         self.table_list.move(50, 20)
@@ -25,7 +27,7 @@ class UpdateWindow(QWidget):
         self.populate_table_list()
         self.record_list = QListWidget(self)
         self.record_list.move(50, 80)
-        self.record_list.resize(500, 520)
+        self.record_list.resize(1300, 520)
         self.populate_record_list()
         update_button = QPushButton("Update", self)
         update_button.clicked.connect(self.update_record)
@@ -34,7 +36,7 @@ class UpdateWindow(QWidget):
         delete_button = QPushButton("Delete", self)
         delete_button.clicked.connect(self.delete_record)
         delete_button.resize(delete_button.sizeHint())
-        delete_button.move(450, 650)
+        delete_button.move(1250, 650)
         self.show()
 
     def populate_table_list(self):
@@ -56,12 +58,14 @@ class UpdateWindow(QWidget):
 
         for record in records:
             fields = ""
-            for field in record.values():
-                fields += str(field) + " --- "
+            for column in record.keys():
+                fields += column + ": " + str(record[column]) + " --- "
             QListWidgetItem(fields[:-5], self.record_list)
 
     def update_record(self):
-        print("placeholder")
+        if self.record_list.currentItem() is not None:
+            update_form = UpdateDialog.UpdateDialog(self.convert_record_to_dict())
+            updated_record = update_form.exec()
 
     def delete_record(self):
         db = main.open_db("im.db")
@@ -72,3 +76,14 @@ class UpdateWindow(QWidget):
 
         main.delete_record(db[1], self.table_list.currentText, record_id)
         main.close_db(db[0])
+
+    # Method assumes text is being taken directly from the QListWidget when formatting
+    def convert_record_to_dict(self) -> dict:
+        current_record = self.record_list.currentItem().text()
+        formatted_record = {}
+        record_text = current_record.split(" --- ")
+        for field in record_text:
+            pair = field.split(": ")
+            formatted_record[pair[0]] = pair[1]
+        return formatted_record
+
