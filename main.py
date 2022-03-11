@@ -302,5 +302,26 @@ def query_popularity_changes(curs: sqlite3.Cursor, table_name: str, top: int, bo
     return result
 
 
+# -----   DATA ANALYSIS METHODS ----- #
+def total_shows_moving_up(curs: sqlite3.Cursor):
+    result = curs.execute("""SELECT * FROM popularShows WHERE RankUpDown > 0""").fetchall()
+    return len(result)
+
+
+def total_shows_moving_down(curs: sqlite3.Cursor):
+    result = curs.execute("""SELECT * FROM popularShows WHERE RankUpDown < 0""").fetchall()
+    return len(result)
+
+
+def total_movies_moving_up(curs: sqlite3.Cursor):
+    result = curs.execute("""SELECT * FROM popularMovies WHERE RankUpDown > 0""").fetchall()
+    return len(result)
+
+
+def total_movies_moving_down(curs: sqlite3.Cursor):
+    result = curs.execute("""SELECT * FROM popularMovies WHERE RankUpDown < 0""").fetchall()
+    return len(result)
+
+
 if __name__ == '__main__':
     main()
