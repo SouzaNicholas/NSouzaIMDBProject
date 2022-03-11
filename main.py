@@ -251,17 +251,27 @@ def create_rating_record(curs: sqlite3.Cursor, table_name: str, row: dict):
 # I'm not sure how to allow input that works for different tables
 # While also preventing SQL injection issues.
 def update_record(curs: sqlite3.Cursor, table: str, data: dict):
-    fields = package_fields(data)
+    fields = package_fields_to_string(data)
     curs.execute(f"""UPDATE {table} SET {fields} WHERE imDbId = (?);""", [data["imDbId"]])
 
 
 # Formats data to a SQL readable format. This would be done by hand, but the number and name of the
 # fields varies by table. It also strips a trailing comma by slicing.
-def package_fields(data: dict) -> str:
+def package_fields_to_string(data: dict) -> str:
     request = ""
     for key in data.keys():
         request += key + " = " + data[key] + ","
     return request[:-1]
+
+
+# It's assumed that the keys and values are already formatted to fit together.
+# I get the keys using a SQL Pragma call, which gives a list of tuples. Index one is where the
+# actual column name is stored in each tuple, hence why it's grabbed.
+def package_fields_to_dict(keys: list[str], values: list[str]) -> dict:
+    data_dict = {}
+    for index in range(len(keys)):
+        data_dict[keys[index][1]] = values[index]
+    return data_dict
 
 
 # id is passed as a tuple so the letters aren't interpreted as separate inputs.
@@ -270,8 +280,14 @@ def delete_record(curs: sqlite3.Cursor, table: str, id: str):
 
 
 # -----   DATABASE SEARCH METHODS ----- #
+# Gets all information from a table and merges each record with columns in to dicts for convenient use.
 def query_entire_table(curs: sqlite3.Cursor, table_name: str):
-    return curs.execute(f"""SELECT * FROM {table_name};""").fetchall()
+    records = curs.execute(f"""SELECT * FROM {table_name};""").fetchall()
+    keys = curs.execute(f"""PRAGMA table_info({table_name});""").fetchall()
+    output = []
+    for record in records:
+        output.append(package_fields_to_dict(keys, record))
+    return output
 
 
 # ID is passed as a list, otherwise str is interpreted as a collection of 9 inputs.
@@ -284,3 +300,7 @@ def query_popularity_changes(curs: sqlite3.Cursor, table_name: str, top: int, bo
     result = curs.execute(f"""SELECT * FROM {table_name} ORDER BY RankUpDown DESC LIMIT {top}""").fetchall()
     result.append(curs.execute(f"""SELECT * FROM {table_name} ORDER BY RankUpDown ASC LIMIT {bottom}""").fetchone())
     return result
+
+
+if __name__ == '__main__':
+    main()
