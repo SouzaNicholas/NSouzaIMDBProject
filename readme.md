@@ -1,10 +1,9 @@
 Developed By: Nicholas Souza
 
-You'll need requests and sqlite3 installed to run the program. You'll only need to 
+You'll need requests, pyqtgraph, and sqlite3 installed to run the program. You'll only need to 
 provide your own API key stored in a local file named "secret.txt"
 
-The project has two tests to run. The first will validate that I query top 250 data
-from the API properly. The second will create a dummy database and use my table
-creation and population functions to fill the database.
+The projects latest tests are stored in a Word document and apply to navigating and testing the GUI.
 
-The project passes all tests, but Github still can't seem to find the tests
+Since the last major update, I've built an entire GUI to manage the database elements
+along with more functions to query and manage the database.
