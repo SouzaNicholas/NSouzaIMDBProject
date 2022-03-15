@@ -302,6 +302,16 @@ def query_popularity_changes(curs: sqlite3.Cursor, table_name: str, top: int, bo
     return result
 
 
+def popular_movies_in_top(curs: sqlite3.Cursor):
+    return curs.execute("""SELECT * FROM movies JOIN popularMovies 
+                                ON movies.imdbId = popularMovies.imdbId""").fetchall()
+
+
+def popular_shows_in_top(curs: sqlite3.Cursor):
+    return curs.execute("""SELECT * FROM shows JOIN popularShows 
+                                ON shows.imdbId = popularShows.imdbId""").fetchall()
+
+
 # -----   DATA ANALYSIS METHODS ----- #
 def total_shows_moving_up(curs: sqlite3.Cursor):
     result = curs.execute("""SELECT * FROM popularShows WHERE RankUpDown > 0""").fetchall()
